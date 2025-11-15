@@ -10,7 +10,7 @@ export default function AddNoteScreen({ navigation }) {
   const [content, setContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]); // array of {type: 'image' or 'video', uri, filename}
 
-  const pickImage = async () => {
+  const pickMedia = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Please grant permission to access photos');
@@ -18,14 +18,15 @@ export default function AddNoteScreen({ navigation }) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       quality: 1,
     });
 
     if (!result.canceled) {
       result.assets.forEach((asset) => {
+        const type = asset.type === 'image' ? 'image' : 'video';
         setMediaFiles(prev => [...prev, {
-          type: 'image',
+          type,
           uri: asset.uri,
           filename: asset.uri.split('/').pop()
         }]);
@@ -120,8 +121,8 @@ export default function AddNoteScreen({ navigation }) {
         onChangeText={setContent}
         multiline
       />
-      <TouchableOpacity style={styles.button} onPress={pickImage}>
-        <Text style={styles.buttonText}>Add Images</Text>
+      <TouchableOpacity style={styles.button} onPress={pickMedia}>
+        <Text style={styles.buttonText}>Add Images/Videos</Text>
       </TouchableOpacity>
       {mediaFiles.map((item, index) => renderMediaItem({ item, index }))}
       <TouchableOpacity style={styles.button} onPress={saveNote}>
