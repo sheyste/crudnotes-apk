@@ -44,11 +44,7 @@ A React Native (Expo) mobile application that demonstrates full CRUD functionali
 
    d. In Supabase Dashboard:
 
-      - Run the `setup.sql` file in your project's SQL Editor to create the `notes` table, enable Row Level Security (RLS), and set up policies.
-
-      - Enable Row Level Security (RLS) on the notes table.
-
-      - Add a policy for Select/Insert/Update/Delete where user_id = auth.uid().
+      - Run the `setup.sql` file in your project's SQL Editor to create the `notes` table.
 
       - Create a storage bucket called `notes-media` and make it public.
 
@@ -80,39 +76,6 @@ A React Native (Expo) mobile application that demonstrates full CRUD functionali
    ```
 
 ## Database Schema
-
-### Notes Table
-
-```sql
-CREATE TABLE notes (
-  id BIGSERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  media JSONB,
-  user_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable RLS
-ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
-
--- Policies
-CREATE POLICY "Users can view their own notes"
-ON notes FOR SELECT
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own notes"
-ON notes FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own notes"
-ON notes FOR UPDATE
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own notes"
-ON notes FOR DELETE
-USING (auth.uid() = user_id);
-```
 
 ### Storage
 
