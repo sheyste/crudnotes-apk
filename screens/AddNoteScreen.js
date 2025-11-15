@@ -36,9 +36,18 @@ export default function AddNoteScreen({ navigation }) {
   const uploadMedia = async () => {
     const uploadedUrls = [];
     for (const file of mediaFiles) {
-      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.BASE64 });
-      const uint8Array = decode(base64);
-      const arrayBuffer = uint8Array.buffer;
+      let arrayBuffer;
+      if (file.uri.startsWith('blob:')) {
+        // For web blob URIs
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        arrayBuffer = await blob.arrayBuffer();
+      } else {
+        // For file URIs
+        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.BASE64 });
+        const uint8Array = decode(base64);
+        arrayBuffer = uint8Array.buffer;
+      }
       const { data, error } = await supabase.storage
         .from('notes-media')
         .upload(`${Date.now()}-${file.filename}`, arrayBuffer, {
@@ -52,6 +61,7 @@ export default function AddNoteScreen({ navigation }) {
   };
 
   const saveNote = async () => {
+    console.log('saveNote called');
     if (!title.trim() || !content.trim()) {
       Alert.alert('Error', 'Please fill in title and content');
       return;
@@ -59,7 +69,15 @@ export default function AddNoteScreen({ navigation }) {
 
     try {
       const mediaUrls = await uploadMedia();
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        Alert.alert('Authentication Error', authError.message);
+        return;
+      }
+      if (!user.user) {
+        Alert.alert('Error', 'No user found, please log in again');
+        return;
+      }
       const { error } = await supabase.from('notes').insert({
         title,
         content,

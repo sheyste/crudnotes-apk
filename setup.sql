@@ -38,3 +38,14 @@ USING (auth.uid() = user_id);
 
 -- Note: Storage bucket 'notes-media' must be created manually in Supabase Dashboard:
 -- Go to Storage > Buckets > Create bucket > Name: notes-media > Make public
+
+-- Allow authenticated users to upload to notes-media bucket
+-- RLS is already enabled on storage.objects
+CREATE POLICY "Users can upload media to notes-media bucket"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'notes-media' AND auth.role() = 'authenticated');
+
+-- Allow authenticated users to delete their media from notes-media bucket
+CREATE POLICY "Users can delete their media from notes-media bucket"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'notes-media' AND auth.uid() = (storage.foldername(name))[1]::uuid);

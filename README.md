@@ -44,13 +44,7 @@ A React Native (Expo) mobile application that demonstrates full CRUD functionali
 
    d. In Supabase Dashboard:
 
-      - Create a new table `notes` with the following columns:
-        - `id`: int8, primary key, auto-increment
-        - `title`: text
-        - `content`: text
-        - `media`: jsonb (nullable)
-        - `user_id`: uuid, references auth.users(id)
-        - `created_at`: timestamptz, default now()
+      - Run the `setup.sql` file in your project's SQL Editor to create the `notes` table, enable Row Level Security (RLS), and set up policies.
 
       - Enable Row Level Security (RLS) on the notes table.
 
