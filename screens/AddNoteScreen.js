@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabaseClient';
-import { decode } from 'base64-arraybuffer'; // need to install for video
-import { Video } from 'expo-av'; // for video display
+import { decode } from 'base64-arraybuffer';
 
 export default function AddNoteScreen({ navigation }) {
   const [title, setTitle] = useState('');
@@ -18,15 +18,14 @@ export default function AddNoteScreen({ navigation }) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
     });
 
     if (!result.canceled) {
       result.assets.forEach((asset) => {
-        const type = asset.type === 'video' ? 'video' : 'image';
         setMediaFiles(prev => [...prev, {
-          type,
+          type: 'image',
           uri: asset.uri,
           filename: asset.uri.split('/').pop()
         }]);
@@ -37,8 +36,9 @@ export default function AddNoteScreen({ navigation }) {
   const uploadMedia = async () => {
     const uploadedUrls = [];
     for (const file of mediaFiles) {
-      const fileResponse = await fetch(file.uri);
-      const arrayBuffer = await fileResponse.arrayBuffer();
+      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.BASE64 });
+      const uint8Array = decode(base64);
+      const arrayBuffer = uint8Array.buffer;
       const { data, error } = await supabase.storage
         .from('notes-media')
         .upload(`${Date.now()}-${file.filename}`, arrayBuffer, {
@@ -80,16 +80,7 @@ export default function AddNoteScreen({ navigation }) {
 
   const renderMediaItem = ({ item, index }) => (
     <View key={index} style={styles.mediaItem}>
-      {item.type === 'image' ? (
-        <Image source={{ uri: item.uri }} style={styles.mediaImage} />
-      ) : (
-        <Video
-          source={{ uri: item.uri }}
-          style={styles.mediaImage}
-          useNativeControls
-          resizeMode="contain"
-        />
-      )}
+      <Image source={{ uri: item.uri }} style={styles.mediaImage} />
       <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
         <Text style={styles.removeText}>X</Text>
       </TouchableOpacity>
@@ -112,7 +103,7 @@ export default function AddNoteScreen({ navigation }) {
         multiline
       />
       <TouchableOpacity style={styles.button} onPress={pickImage}>
-        <Text style={styles.buttonText}>Add Media (Image/Video)</Text>
+        <Text style={styles.buttonText}>Add Images</Text>
       </TouchableOpacity>
       {mediaFiles.map((item, index) => renderMediaItem({ item, index }))}
       <TouchableOpacity style={styles.button} onPress={saveNote}>

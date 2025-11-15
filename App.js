@@ -57,9 +57,10 @@ export default function App() {
         ) : (
           <Stack.Screen
             name="Auth"
-            component={(props) => <AuthScreen {...props} onAuth={() => setAuthenticated(true)} />}
             options={{ headerShown: false }}
-          />
+          >
+            {(props) => <AuthScreen {...props} onAuth={() => setAuthenticated(true)} />}
+          </Stack.Screen>
         )}
       </Stack.Navigator>
     </NavigationContainer>
