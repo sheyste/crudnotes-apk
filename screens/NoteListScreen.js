@@ -31,14 +31,7 @@ export default function NoteListScreen({ navigation }) {
     fetchNotes().then(() => setRefreshing(false));
   };
 
-  const deleteNote = async (id) => {
-    const { error } = await supabase.from('notes').delete().eq('id', id);
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      fetchNotes();
-    }
-  };
+
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -54,17 +47,6 @@ export default function NoteListScreen({ navigation }) {
     >
       <Text style={styles.noteTitle}>{item.title}</Text>
       <Text style={styles.noteContent} numberOfLines={2}>{item.content}</Text>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => {
-          Alert.alert('Delete Note', 'Are you sure?', [
-            { text: 'Cancel' },
-            { text: 'Delete', style: 'destructive', onPress: () => deleteNote(item.id) },
-          ]);
-        }}
-      >
-        <Text style={styles.deleteText}>Delete</Text>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -141,18 +123,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  deleteButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#FF3B30',
-    padding: 5,
-    borderRadius: 5,
-  },
-  deleteText: {
-    color: 'white',
-    fontSize: 12,
-  },
+
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -178,5 +149,6 @@ const styles = StyleSheet.create({
   fabText: {
     fontSize: 30,
     color: 'white',
+    paddingBottom: 5,
   },
 });

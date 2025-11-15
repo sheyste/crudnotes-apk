@@ -5,9 +5,10 @@ import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabaseClient';
 import { decode } from 'base64-arraybuffer';
 
-export default function AddNoteScreen({ navigation }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+export default function AddNoteScreen({ route, navigation }) {
+  const { note } = route.params || {};
+  const [title, setTitle] = useState(note ? note.title : '');
+  const [content, setContent] = useState(note ? note.content : '');
   const [mediaFiles, setMediaFiles] = useState([]); // array of {type: 'image' or 'video', uri, filename}
 
   const pickMedia = async () => {
@@ -79,14 +80,29 @@ export default function AddNoteScreen({ navigation }) {
         Alert.alert('Error', 'No user found, please log in again');
         return;
       }
-      const { error } = await supabase.from('notes').insert({
-        title,
-        content,
-        media: mediaUrls.length > 0 ? mediaUrls : null,
-        user_id: user.user.id,
-      });
+      let error;
+      if (note) {
+        // Update existing note
+        ({ error } = await supabase
+          .from('notes')
+          .update({
+            title,
+            content,
+            // For simplicity, append new media if any, but in practice, handle better
+            media: mediaUrls.length > 0 ? [...(note.media || []), ...mediaUrls] : note.media,
+          })
+          .eq('id', note.id));
+      } else {
+        // Insert new note
+        ({ error } = await supabase.from('notes').insert({
+          title,
+          content,
+          media: mediaUrls.length > 0 ? mediaUrls : null,
+          user_id: user.user.id,
+        }));
+      }
       if (error) throw error;
-      Alert.alert('Success', 'Note saved');
+      Alert.alert('Success', note ? 'Note updated' : 'Note saved');
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', error.message);
@@ -126,7 +142,7 @@ export default function AddNoteScreen({ navigation }) {
       </TouchableOpacity>
       {mediaFiles.map((item, index) => renderMediaItem({ item, index }))}
       <TouchableOpacity style={styles.button} onPress={saveNote}>
-        <Text style={styles.buttonText}>Save Note</Text>
+        <Text style={styles.buttonText}>{note ? 'Update Note' : 'Save Note'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
