@@ -15,9 +15,13 @@ export default function AuthScreen({ onAuth }) {
 
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        console.log('Attempting sign up...');
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        console.log('Sign up result:', data, error);
         if (error) throw error;
-        Alert.alert('Success', 'Check your email for confirmation');
+        Alert.alert('Check your email', 'Please check your email for confirmation.', [
+          { text: 'Go to Login', onPress: () => setIsSignup(false) }
+        ]);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

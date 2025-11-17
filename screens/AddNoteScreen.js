@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, Dimensions } from 'react-native';
+import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabaseClient';
@@ -9,7 +10,13 @@ export default function AddNoteScreen({ route, navigation }) {
   const { note } = route.params || {};
   const [title, setTitle] = useState(note ? note.title : '');
   const [content, setContent] = useState(note ? note.content : '');
-  const [mediaFiles, setMediaFiles] = useState([]); // array of {type: 'image' or 'video', uri, filename}
+  const [mediaFiles, setMediaFiles] = useState([]); // array of {type: 'image' or 'video', uri?, url?, filename?} - uri for new, url for existing
+
+  useEffect(() => {
+    if (note && note.media) {
+      setMediaFiles(note.media.map(m => ({ type: m.type, url: m.url })));
+    }
+  }, [note]);
 
   const pickMedia = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,6 +45,7 @@ export default function AddNoteScreen({ route, navigation }) {
   const uploadMedia = async () => {
     const uploadedUrls = [];
     for (const file of mediaFiles) {
+      if (!file.uri) continue; // Skip existing media that don't have uri
       let arrayBuffer;
       if (file.uri.startsWith('blob:')) {
         // For web blob URIs
@@ -80,6 +88,7 @@ export default function AddNoteScreen({ route, navigation }) {
         Alert.alert('Error', 'No user found, please log in again');
         return;
       }
+      const finalMedia = mediaFiles.filter(m => m.url).concat(mediaUrls.map(urlObj => urlObj));
       let error;
       if (note) {
         // Update existing note
@@ -88,8 +97,7 @@ export default function AddNoteScreen({ route, navigation }) {
           .update({
             title,
             content,
-            // For simplicity, append new media if any, but in practice, handle better
-            media: mediaUrls.length > 0 ? [...(note.media || []), ...mediaUrls] : note.media,
+            media: finalMedia.length > 0 ? finalMedia : null,
           })
           .eq('id', note.id));
       } else {
@@ -97,7 +105,7 @@ export default function AddNoteScreen({ route, navigation }) {
         ({ error } = await supabase.from('notes').insert({
           title,
           content,
-          media: mediaUrls.length > 0 ? mediaUrls : null,
+          media: finalMedia.length > 0 ? finalMedia : null,
           user_id: user.user.id,
         }));
       }
@@ -113,14 +121,26 @@ export default function AddNoteScreen({ route, navigation }) {
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const renderMediaItem = ({ item, index }) => (
-    <View key={index} style={styles.mediaItem}>
-      <Image source={{ uri: item.uri }} style={styles.mediaImage} />
-      <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
-        <Text style={styles.removeText}>X</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderMediaItem = ({ item, index }) => {
+    const source = item.uri || item.url;
+    return (
+      <View key={index} style={styles.mediaItem}>
+        {item.type === 'image' ? (
+          <Image source={{ uri: source }} style={styles.mediaImage} />
+        ) : (
+          <Video
+            source={{ uri: source }}
+            style={styles.mediaImage}
+            useNativeControls
+            resizeMode="contain"
+          />
+        )}
+        <TouchableOpacity style={styles.removeButton} onPress={() => removeMedia(index)}>
+          <Text style={styles.removeText}>X</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

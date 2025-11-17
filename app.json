@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "noteapp",
-    "slug": "noteapp",
+    "slug": "temp-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
